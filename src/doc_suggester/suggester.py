@@ -44,24 +44,14 @@ If conflicts exist, add a "## Content Conflicts" section at the end noting them.
 If no conflicts: end with `*No content conflicts detected.*`
 """
 
-_OUTPUT_FORMAT_EMAIL = """\
-Write your output as a follow-up email from the SE to the prospect. Guidelines:
-- Open warmly and thank them for their time: \
-"Thanks again for the time you spent with us today! Here's more information that I thought \
-you'd find helpful on the topics we discussed..."
-- Briefly acknowledge the specific topics they care about before diving into resources
-- Share 4–6 resources naturally woven into short paragraphs — not a bullet dump
-- For each resource include the URL inline and one sentence on why it's relevant to them specifically
-- Close with a genuine offer to answer questions or set up a follow-up call
-- Tone: helpful SE, not marketing — warm, direct, and concise
-- Length: skimmable in under 2 minutes
-- Formatting: plain prose with inline URLs; no heavy markdown, no bold headers — \
-this will be pasted into an email client
-"""
+_PROMPTS_DIR = Path(__file__).parent / "prompts"
 
 
 def _build_system_prompt(output_format: str) -> str:
-    fmt = _OUTPUT_FORMAT_EMAIL if output_format == "email" else _OUTPUT_FORMAT_MD
+    if output_format == "email":
+        fmt = (_PROMPTS_DIR / "email_format.txt").read_text(encoding="utf-8")
+    else:
+        fmt = _OUTPUT_FORMAT_MD
     return _SYSTEM_PROMPT_BASE + fmt
 
 _TOOLS: list[dict[str, Any]] = [
