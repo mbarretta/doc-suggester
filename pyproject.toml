@@ -14,8 +14,12 @@ doc-suggester = "doc_suggester.cli:main"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build.hooks.custom]
+path = "hatch_build.py"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/doc_suggester"]
+artifacts = ["src/doc_suggester/bin/*"]
 
 [dependency-groups]
 dev = [

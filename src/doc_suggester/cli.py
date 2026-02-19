@@ -33,21 +33,24 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--project-root",
         metavar="DIR",
         default=None,
-        help="Path to the doc-suggester project root (default: directory of this package).",
+        help="Path to the doc-suggester data directory (default: ~/.local/share/doc-suggester).",
     )
     return parser.parse_args(argv)
 
 
 def _resolve_project_root(explicit: str | None) -> Path:
+    # 1. Explicit --project-root flag
     if explicit:
         return Path(explicit).resolve()
-    # Default: walk up from this file until we find main.go (the Go scraper)
+    # 2. Walk up from this file — works for `uv run` and development installs
     here = Path(__file__).resolve().parent
     for candidate in [here, here.parent, here.parent.parent, here.parent.parent.parent]:
         if (candidate / "main.go").exists():
             return candidate
-    # Fallback to cwd
-    return Path.cwd()
+    # 3. Standalone (uv tool install): use a per-user data directory
+    data_dir = Path.home() / ".local" / "share" / "doc-suggester"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    return data_dir
 
 
 def main(argv: list[str] | None = None) -> None:

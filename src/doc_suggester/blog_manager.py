@@ -83,12 +83,26 @@ def is_archive_stale(project_root: Path) -> bool:
     return age.days > _STALE_DAYS
 
 
+def _find_scraper() -> list[str]:
+    """Return the command to invoke the Go scraper.
+
+    Prefers the binary bundled at install time. Falls back to `go run main.go`
+    for development (uv run / editable install).
+    """
+    binary_name = "scraper.exe" if sys.platform == "win32" else "scraper"
+    bundled = Path(__file__).parent / "bin" / binary_name
+    if bundled.exists():
+        bundled.chmod(0o755)
+        return [str(bundled)]
+    return ["go", "run", "main.go"]
+
+
 def refresh_blogs(project_root: Path, force: bool = False) -> None:
     """Run the Go scraper to refresh the blog archive."""
-    cmd = ["go", "run", "main.go"]
+    cmd = _find_scraper()
     if force:
         cmd.append("-force")
-    print(f"[doc-suggester] Running: {' '.join(cmd)}", file=sys.stderr)
+    print(f"[doc-suggester] Running scraper in {project_root}", file=sys.stderr)
     subprocess.run(cmd, cwd=project_root, check=True, stderr=sys.stderr)
 
 
