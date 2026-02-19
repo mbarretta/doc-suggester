@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-import json
+import logging
+import os
+import sys
 from types import TracebackType
 from typing import Any
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
+logger = logging.getLogger(__name__)
 
 _DOCKER_IMAGE = "ghcr.io/chainguard-dev/ai-docs:latest"
 
@@ -20,13 +23,22 @@ class DocsClient:
         self._session: ClientSession | None = None
         self._cm: Any = None  # the stdio_client context manager
         self._session_cm: Any = None
+        self._devnull: Any = None
 
     async def __aenter__(self) -> "DocsClient":
         server_params = StdioServerParameters(
             command="docker",
             args=["run", "--rm", "-i", _DOCKER_IMAGE, "serve-mcp"],
         )
-        self._cm = stdio_client(server_params)
+        # Route subprocess stderr to /dev/null unless DEBUG logging is active.
+        # (anyio requires a real file descriptor, so a Python-level wrapper won't work.)
+        if logger.isEnabledFor(logging.DEBUG):
+            errlog = sys.stderr
+        else:
+            self._devnull = open(os.devnull, "w")
+            errlog = self._devnull
+        logger.debug("Starting MCP docs server via Docker")
+        self._cm = stdio_client(server_params, errlog=errlog)
         read, write = await self._cm.__aenter__()
         self._session_cm = ClientSession(read, write)
         self._session = await self._session_cm.__aenter__()
@@ -43,6 +55,8 @@ class DocsClient:
             await self._session_cm.__aexit__(exc_type, exc_val, exc_tb)
         if self._cm is not None:
             await self._cm.__aexit__(exc_type, exc_val, exc_tb)
+        if self._devnull is not None:
+            self._devnull.close()
 
     def _extract_text(self, result: Any) -> str:
         """Extract text content from an MCP tool result."""

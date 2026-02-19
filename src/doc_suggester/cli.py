@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import logging
 import sys
 from pathlib import Path
 
@@ -41,6 +42,11 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="Path to the doc-suggester data directory (default: ~/.local/share/doc-suggester).",
     )
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Enable verbose (DEBUG) logging.",
+    )
     return parser.parse_args(argv)
 
 
@@ -61,6 +67,10 @@ def _resolve_project_root(explicit: str | None) -> Path:
 
 def main(argv: list[str] | None = None) -> None:
     args = _parse_args(argv)
+    logging.basicConfig(
+        level=logging.DEBUG if args.verbose else logging.WARNING,
+        format="%(levelname)s %(name)s: %(message)s",
+    )
 
     # Resolve SE notes text
     if args.notes_file:

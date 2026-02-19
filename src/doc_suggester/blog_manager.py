@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import subprocess
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -102,8 +105,9 @@ def refresh_blogs(project_root: Path, force: bool = False) -> None:
     cmd = _find_scraper()
     if force:
         cmd.append("-force")
-    print(f"[doc-suggester] Running scraper in {project_root}", file=sys.stderr)
-    subprocess.run(cmd, cwd=project_root, check=True, stderr=sys.stderr)
+    logger.debug("Running scraper in %s: %s", project_root, cmd)
+    sink = sys.stderr if logger.isEnabledFor(logging.DEBUG) else subprocess.DEVNULL
+    subprocess.run(cmd, cwd=project_root, check=True, stdout=sink, stderr=sink)
 
 
 def parse_blog_index(archive_path: Path) -> list[BlogPost]:
