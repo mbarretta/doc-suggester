@@ -20,6 +20,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="SE notes text (reads from stdin if omitted and --notes-file not given).",
     )
     parser.add_argument(
+        "--format",
+        choices=["md", "email"],
+        default="md",
+        help="Output format: 'md' for ranked markdown (default), 'email' for a follow-up email draft.",
+    )
+    parser.add_argument(
         "--refresh",
         action="store_true",
         help="Force blog archive refresh regardless of staleness.",
@@ -79,6 +85,7 @@ def main(argv: list[str] | None = None) -> None:
         se_notes=notes,
         project_root=project_root,
         force_refresh=args.refresh,
+        output_format=args.format,
     ))
     print(result)
 

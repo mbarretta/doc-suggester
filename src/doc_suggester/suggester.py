@@ -14,9 +14,9 @@ from doc_suggester.docs_client import DocsClient
 
 _MODEL = "claude-sonnet-4-6"
 
-_SYSTEM_PROMPT = """\
+_SYSTEM_PROMPT_BASE = """\
 You are a technical content advisor for Chainguard sales engineers. Given notes about a prospect, \
-you recommend the most relevant Chainguard blog posts and documentation pages.
+you identify the most relevant Chainguard blog posts and documentation pages.
 
 You have access to:
 1. A blog index below (title, URL, date, short excerpt) — use get_blog_post to read a full post
@@ -27,8 +27,11 @@ Workflow:
 - Fetch full content for the most promising posts using get_blog_post
 - Fetch relevant documentation using get_security_docs, get_tool_docs, or get_image_docs
 - Use search_docs only as a fallback when other tools don't surface what you need
-- Produce a ranked markdown list of 5–10 recommendations
+- Select the 5–10 most relevant resources before writing your final output
 
+"""
+
+_OUTPUT_FORMAT_MD = """\
 Output format for each recommendation:
 ### N. [Type] Title
 **URL**: <url>
@@ -40,6 +43,26 @@ If conflicts exist, add a "## Content Conflicts" section at the end noting them.
 
 If no conflicts: end with `*No content conflicts detected.*`
 """
+
+_OUTPUT_FORMAT_EMAIL = """\
+Write your output as a follow-up email from the SE to the prospect. Guidelines:
+- Open warmly and thank them for their time: \
+"Thanks again for the time you spent with us today! Here's more information that I thought \
+you'd find helpful on the topics we discussed..."
+- Briefly acknowledge the specific topics they care about before diving into resources
+- Share 4–6 resources naturally woven into short paragraphs — not a bullet dump
+- For each resource include the URL inline and one sentence on why it's relevant to them specifically
+- Close with a genuine offer to answer questions or set up a follow-up call
+- Tone: helpful SE, not marketing — warm, direct, and concise
+- Length: skimmable in under 2 minutes
+- Formatting: plain prose with inline URLs; no heavy markdown, no bold headers — \
+this will be pasted into an email client
+"""
+
+
+def _build_system_prompt(output_format: str) -> str:
+    fmt = _OUTPUT_FORMAT_EMAIL if output_format == "email" else _OUTPUT_FORMAT_MD
+    return _SYSTEM_PROMPT_BASE + fmt
 
 _TOOLS: list[dict[str, Any]] = [
     {
@@ -113,6 +136,7 @@ async def suggest(
     se_notes: str,
     project_root: Path,
     force_refresh: bool = False,
+    output_format: str = "md",
 ) -> str:
     """Generate content recommendations for SE notes.
 
@@ -120,9 +144,10 @@ async def suggest(
         se_notes: Free-form text describing the prospect's interests/concerns.
         project_root: Path to the doc-suggester repo root (contains main.go).
         force_refresh: If True, run the Go scraper regardless of archive age.
+        output_format: "md" for ranked markdown (default), "email" for a follow-up email draft.
 
     Returns:
-        Formatted markdown recommendations.
+        Formatted recommendations in the requested format.
     """
     # 1. Refresh blogs if needed
     if force_refresh or is_archive_stale(project_root):
@@ -148,7 +173,7 @@ async def suggest(
             response = await client.messages.create(
                 model=_MODEL,
                 max_tokens=4096,
-                system=_SYSTEM_PROMPT,
+                system=_build_system_prompt(output_format),
                 tools=_TOOLS,
                 messages=messages,
             )

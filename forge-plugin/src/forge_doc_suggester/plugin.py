@@ -24,6 +24,11 @@ class DocSuggesterPlugin:
                 required=True,
             ),
             ToolParam(
+                name="format",
+                description="Output format: 'md' for ranked markdown, 'email' for a follow-up email draft",
+                default="md",
+            ),
+            ToolParam(
                 name="refresh",
                 description="Force blog archive refresh",
                 type="bool",
@@ -44,6 +49,7 @@ class DocSuggesterPlugin:
                     se_notes=args["notes"],
                     project_root=Path(args.get("project_root", ".")),
                     force_refresh=args.get("refresh", False),
+                    output_format=args.get("format", "md"),
                 )
             )
             ctx.progress(1.0, "Done")
