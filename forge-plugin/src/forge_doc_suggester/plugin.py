@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from pathlib import Path
 
 from forge_core.context import ExecutionContext
@@ -59,6 +60,7 @@ class DocSuggesterPlugin:
                 data={"output": result},
             )
         except Exception as e:
+            logging.exception("doc-suggester failed")
             return ToolResult(status=ResultStatus.FAILURE, summary=f"Error: {e}")
 
 

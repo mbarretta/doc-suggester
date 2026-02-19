@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from types import TracebackType
+from contextlib import AsyncExitStack
 from typing import Any
 
 from mcp import ClientSession, StdioServerParameters
@@ -21,9 +21,7 @@ class DocsClient:
 
     def __init__(self) -> None:
         self._session: ClientSession | None = None
-        self._cm: Any = None  # the stdio_client context manager
-        self._session_cm: Any = None
-        self._devnull: Any = None
+        self._stack: AsyncExitStack | None = None
 
     async def __aenter__(self) -> "DocsClient":
         server_params = StdioServerParameters(
@@ -35,28 +33,23 @@ class DocsClient:
         if logger.isEnabledFor(logging.DEBUG):
             errlog = sys.stderr
         else:
-            self._devnull = open(os.devnull, "w")
-            errlog = self._devnull
-        logger.debug("Starting MCP docs server via Docker")
-        self._cm = stdio_client(server_params, errlog=errlog)
-        read, write = await self._cm.__aenter__()
-        self._session_cm = ClientSession(read, write)
-        self._session = await self._session_cm.__aenter__()
-        await self._session.initialize()
+            errlog = open(os.devnull, "w")
+
+        async with AsyncExitStack() as stack:
+            if errlog is not sys.stderr:
+                stack.callback(errlog.close)
+            logger.debug("Starting MCP docs server via Docker")
+            read, write = await stack.enter_async_context(stdio_client(server_params, errlog=errlog))
+            session = await stack.enter_async_context(ClientSession(read, write))
+            await session.initialize()
+            self._session = session
+            self._stack = stack.pop_all()
+
         return self
 
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> None:
-        if self._session_cm is not None:
-            await self._session_cm.__aexit__(exc_type, exc_val, exc_tb)
-        if self._cm is not None:
-            await self._cm.__aexit__(exc_type, exc_val, exc_tb)
-        if self._devnull is not None:
-            self._devnull.close()
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        if self._stack is not None:
+            await self._stack.aclose()
 
     def _extract_text(self, result: Any) -> str:
         """Extract text content from an MCP tool result."""
@@ -70,41 +63,24 @@ class DocsClient:
             return "\n".join(parts)
         return str(result)
 
+    async def _call_tool(self, name: str, arguments: dict[str, Any] | None = None) -> str:
+        if self._session is None:
+            raise RuntimeError("DocsClient must be used as an async context manager")
+        result = await self._session.call_tool(name, arguments=arguments or {})
+        return self._extract_text(result)
+
     async def search(self, query: str, max_results: int = 5) -> str:
         """Search docs (unreliable — prefer get_security_docs/get_tool_docs/get_image_docs)."""
-        assert self._session is not None
-        result = await self._session.call_tool(
-            "search_docs",
-            arguments={"query": query, "max_results": max_results},
-        )
-        return self._extract_text(result)
+        return await self._call_tool("search_docs", {"query": query, "max_results": max_results})
 
     async def get_image_docs(self, image_name: str) -> str:
         """Get documentation for a specific Chainguard image."""
-        assert self._session is not None
-        result = await self._session.call_tool(
-            "get_image_docs",
-            arguments={"image_name": image_name},
-        )
-        return self._extract_text(result)
+        return await self._call_tool("get_image_docs", {"image_name": image_name})
 
     async def get_security_docs(self) -> str:
         """Get security-related documentation (CVEs, SBOMs, Cosign, etc.)."""
-        assert self._session is not None
-        result = await self._session.call_tool("get_security_docs", arguments={})
-        return self._extract_text(result)
+        return await self._call_tool("get_security_docs")
 
     async def get_tool_docs(self, tool_name: str) -> str:
         """Get documentation for a Chainguard tool (wolfi, apko, melange, chainctl)."""
-        assert self._session is not None
-        result = await self._session.call_tool(
-            "get_tool_docs",
-            arguments={"tool_name": tool_name},
-        )
-        return self._extract_text(result)
-
-    async def list_images(self) -> str:
-        """List all available Chainguard container images."""
-        assert self._session is not None
-        result = await self._session.call_tool("list_images", arguments={})
-        return self._extract_text(result)
+        return await self._call_tool("get_tool_docs", {"tool_name": tool_name})

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -94,7 +94,6 @@ def test_is_archive_stale_no_checkpoint(tmp_path: Path):
 
 
 def test_is_archive_stale_recent(tmp_path: Path):
-    from datetime import timedelta
     output = tmp_path / "output"
     output.mkdir()
     (output / "unchained-archive.md").write_text("# archive")
@@ -112,7 +111,6 @@ def test_is_archive_stale_recent(tmp_path: Path):
 
 
 def test_is_archive_stale_old(tmp_path: Path):
-    from datetime import timedelta
     output = tmp_path / "output"
     output.mkdir()
     (output / "unchained-archive.md").write_text("# archive")

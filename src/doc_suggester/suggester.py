@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +12,7 @@ from doc_suggester.docs_client import DocsClient
 
 
 _MODEL = "claude-sonnet-4-6"
+_MAX_TURNS = 20
 
 _SYSTEM_PROMPT_BASE = """\
 You are a technical content advisor for Chainguard sales engineers. Given notes about a prospect, \
@@ -53,6 +53,7 @@ def _build_system_prompt(output_format: str) -> str:
     else:
         fmt = _OUTPUT_FORMAT_MD
     return _SYSTEM_PROMPT_BASE + fmt
+
 
 _TOOLS: list[dict[str, Any]] = [
     {
@@ -122,6 +123,30 @@ def _build_blog_index_text(posts: list[BlogPost]) -> str:
     return "\n".join(lines)
 
 
+async def _dispatch_tool(
+    tool_name: str,
+    tool_input: dict[str, Any],
+    post_by_url: dict[str, BlogPost],
+    docs: DocsClient,
+) -> str:
+    if tool_name == "get_blog_post":
+        url = tool_input.get("url", "")
+        post = post_by_url.get(url)
+        return post.full_content if post else f"Blog post not found in archive: {url}"
+    if tool_name == "search_docs":
+        return await docs.search(
+            query=tool_input["query"],
+            max_results=tool_input.get("max_results", 5),
+        )
+    if tool_name == "get_security_docs":
+        return await docs.get_security_docs()
+    if tool_name == "get_tool_docs":
+        return await docs.get_tool_docs(tool_input["tool_name"])
+    if tool_name == "get_image_docs":
+        return await docs.get_image_docs(tool_input["image_name"])
+    return f"Unknown tool: {tool_name}"
+
+
 async def suggest(
     se_notes: str,
     project_root: Path,
@@ -151,6 +176,7 @@ async def suggest(
 
     # 3. Run multi-turn tool use with a single DocsClient session
     client = anthropic.AsyncAnthropic()
+    system_prompt = _build_system_prompt(output_format)
     messages: list[dict[str, Any]] = [
         {
             "role": "user",
@@ -159,57 +185,25 @@ async def suggest(
     ]
 
     async with DocsClient() as docs:
-        while True:
+        for _ in range(_MAX_TURNS):
             response = await client.messages.create(
                 model=_MODEL,
                 max_tokens=4096,
-                system=_build_system_prompt(output_format),
+                system=system_prompt,
                 tools=_TOOLS,
                 messages=messages,
             )
 
-            # Collect assistant message
             messages.append({"role": "assistant", "content": response.content})
 
             if response.stop_reason != "tool_use":
                 break
 
-            # Process tool calls
             tool_results: list[dict[str, Any]] = []
             for block in response.content:
                 if block.type != "tool_use":
                     continue
-
-                tool_name = block.name
-                tool_input = block.input
-                result_text: str
-
-                if tool_name == "get_blog_post":
-                    url = tool_input.get("url", "")
-                    post = post_by_url.get(url)
-                    if post:
-                        result_text = post.full_content
-                    else:
-                        result_text = f"Blog post not found in archive: {url}"
-
-                elif tool_name == "search_docs":
-                    result_text = await docs.search(
-                        query=tool_input["query"],
-                        max_results=tool_input.get("max_results", 5),
-                    )
-
-                elif tool_name == "get_security_docs":
-                    result_text = await docs.get_security_docs()
-
-                elif tool_name == "get_tool_docs":
-                    result_text = await docs.get_tool_docs(tool_input["tool_name"])
-
-                elif tool_name == "get_image_docs":
-                    result_text = await docs.get_image_docs(tool_input["image_name"])
-
-                else:
-                    result_text = f"Unknown tool: {tool_name}"
-
+                result_text = await _dispatch_tool(block.name, block.input, post_by_url, docs)
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": block.id,

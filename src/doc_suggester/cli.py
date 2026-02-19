@@ -55,10 +55,11 @@ def _resolve_project_root(explicit: str | None) -> Path:
     if explicit:
         return Path(explicit).resolve()
     # 2. Walk up from this file — works for `uv run` and development installs
-    here = Path(__file__).resolve().parent
-    for candidate in [here, here.parent, here.parent.parent, here.parent.parent.parent]:
+    candidate = Path(__file__).resolve().parent
+    while candidate != candidate.parent:  # stop at filesystem root
         if (candidate / "main.go").exists():
             return candidate
+        candidate = candidate.parent
     # 3. Standalone (uv tool install): use a per-user data directory
     data_dir = Path.home() / ".local" / "share" / "doc-suggester"
     data_dir.mkdir(parents=True, exist_ok=True)

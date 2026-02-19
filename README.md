@@ -61,6 +61,14 @@ doc-suggester --notes-file notes.txt
 echo "fintech company, needs FIPS compliance, currently on Ubuntu base images" | doc-suggester
 ```
 
+### Output as a follow-up email
+
+```bash
+doc-suggester --format email "prospect worried about Java CVEs"
+```
+
+Produces a ready-to-send follow-up email — warm opener, resources woven into prose paragraphs with inline URLs, and a closing offer to follow up. The default (`--format md`) returns a ranked markdown list with titles, URLs, dates, and relevance explanations.
+
 ### Force a blog archive refresh
 
 ```bash
@@ -68,10 +76,6 @@ doc-suggester --refresh "prospect interested in SLSA compliance"
 ```
 
 The `--refresh` flag re-runs the Go scraper regardless of archive age. Without it, the archive is refreshed automatically when it's more than 7 days old.
-
-## Output
-
-Ranked markdown with titles, URLs, dates, and a one-sentence explanation of why each resource is relevant to the prospect. Blog posts and documentation are interleaved by relevance. Any conflicts between a blog post and a doc page are called out at the end.
 
 ## Forge plugin
 
