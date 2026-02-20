@@ -29,3 +29,14 @@ class CustomBuildHook(BuildHookInterface):
 
         # Mark as an artifact so hatchling includes it even though it's gitignored
         build_data["artifacts"].append(f"src/doc_suggester/bin/{binary_name}")
+
+        # Build llgen binary
+        llgen_name = "llgen.exe" if sys.platform == "win32" else "llgen"
+        llgen_output = bin_dir / llgen_name
+        print(f"[hatch-build] Compiling Go llgen → {llgen_output}")
+        subprocess.run(
+            ["go", "build", "-o", str(llgen_output), "."],
+            cwd=root / "llgen",
+            check=True,
+        )
+        build_data["artifacts"].append(f"src/doc_suggester/bin/{llgen_name}")

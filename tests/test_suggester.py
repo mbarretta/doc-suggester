@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from doc_suggester.blog_manager import BlogPost
+from doc_suggester.labs_manager import LabEntry
 from doc_suggester.suggester import _build_blog_index_text, suggest
 
 
@@ -86,6 +87,9 @@ def suggest_env(tmp_path: Path, mock_docs_client):
     with (
         patch("doc_suggester.suggester.is_archive_stale", return_value=False),
         patch("doc_suggester.suggester.refresh_blogs") as mock_refresh,
+        patch("doc_suggester.suggester.is_labs_stale", return_value=False),
+        patch("doc_suggester.suggester.refresh_labs"),
+        patch("doc_suggester.suggester.load_labs", return_value=[]),
         patch("doc_suggester.suggester.DocsClient", return_value=mock_docs_client),
         patch("doc_suggester.suggester.anthropic.AsyncAnthropic") as mock_anthropic,
     ):
@@ -221,3 +225,43 @@ async def test_suggest_unknown_blog_url_returns_not_found(suggest_env):
     assert tool_result_message["role"] == "user"
     content = tool_result_message["content"]
     assert any("not found" in item.get("content", "") for item in content)
+
+
+async def test_suggest_get_lab_tool(tmp_path: Path, mock_docs_client):
+    """Claude can call get_lab tool and receives formatted lab details."""
+    sample_lab = LabEntry(
+        id="ll202509",
+        title="Java Zero-CVE Lab",
+        date="2025-09",
+        url="https://edu.chainguard.dev/software-security/learning-labs/ll202509/",
+        recording_url="https://www.youtube.com/watch?v=abc123",
+        technologies=["Java", "Docker"],
+        difficulty="beginner",
+        intent_signals=["Java CVEs", "container security"],
+        summary="Reduce CVEs in Java container images.",
+    )
+    _make_archive(tmp_path)
+    tool_use_block = _make_tool_use_block("tu_lab", "get_lab", {"lab_id": "ll202509"})
+    with (
+        patch("doc_suggester.suggester.is_archive_stale", return_value=False),
+        patch("doc_suggester.suggester.refresh_blogs"),
+        patch("doc_suggester.suggester.is_labs_stale", return_value=False),
+        patch("doc_suggester.suggester.refresh_labs"),
+        patch("doc_suggester.suggester.load_labs", return_value=[sample_lab]),
+        patch("doc_suggester.suggester.DocsClient", return_value=mock_docs_client),
+        patch("doc_suggester.suggester.anthropic.AsyncAnthropic") as mock_anthropic,
+    ):
+        mock_client = AsyncMock()
+        mock_anthropic.return_value = mock_client
+        mock_client.messages.create = AsyncMock(side_effect=[
+            _make_tool_response(tool_use_block),
+            _make_end_response("Java lab recommended"),
+        ])
+        result = await suggest("Java developer worried about CVEs", tmp_path)
+
+    assert "Java lab recommended" in result
+    # Verify the tool result sent back to Claude contains lab details
+    second_call_messages = mock_client.messages.create.call_args_list[1][1]["messages"]
+    tool_result_message = second_call_messages[2]
+    content = tool_result_message["content"]
+    assert any("Java Zero-CVE Lab" in item.get("content", "") for item in content)

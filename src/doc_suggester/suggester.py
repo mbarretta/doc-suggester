@@ -9,6 +9,14 @@ import anthropic
 
 from doc_suggester.blog_manager import BlogPost, is_archive_stale, parse_blog_index, refresh_blogs
 from doc_suggester.docs_client import DocsClient
+from doc_suggester.labs_manager import (
+    LabEntry,
+    build_labs_index_text,
+    format_lab_detail,
+    is_labs_stale,
+    load_labs,
+    refresh_labs,
+)
 
 
 _MODEL = "claude-sonnet-4-6"
@@ -21,12 +29,14 @@ you identify the most relevant Chainguard blog posts and documentation pages.
 You have access to:
 1. A blog index below (title, URL, date, short excerpt) — use get_blog_post to read a full post
 2. Tools to fetch Chainguard product documentation
+3. A Learning Labs index (hands-on video sessions) — use get_lab to read full lab details
 
 Workflow:
 - Scan the blog index for relevant posts based on title and excerpt
 - Fetch full content for the most promising posts using get_blog_post
 - Fetch relevant documentation using get_security_docs, get_tool_docs, or get_image_docs
 - Use search_docs only as a fallback when other tools don't surface what you need
+- Fetch full lab details using get_lab before recommending a lab
 - Select the 5–10 most relevant resources before writing your final output
 
 """
@@ -36,6 +46,9 @@ Output format for each recommendation:
 ### N. [Type] Title
 **URL**: <url>
 **Date**: <date> (for blog posts)
+**Lab page**: <url> (for Learning Labs)
+**Recording**: <url> (for Learning Labs)
+**Difficulty**: <level> (for Learning Labs)
 **Why relevant**: 1–2 sentence explanation tied to the prospect's specific concerns
 
 When a blog post and a documentation page conflict, prefer the more recently dated source. \
@@ -109,6 +122,17 @@ _TOOLS: list[dict[str, Any]] = [
             "required": ["image_name"],
         },
     },
+    {
+        "name": "get_lab",
+        "description": "Get full details for a Chainguard Learning Lab by ID (e.g. 'll202509'). Use when the index shows a lab may be relevant.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "lab_id": {"type": "string"},
+            },
+            "required": ["lab_id"],
+        },
+    },
 ]
 
 
@@ -128,6 +152,7 @@ async def _dispatch_tool(
     tool_input: dict[str, Any],
     post_by_url: dict[str, BlogPost],
     docs: DocsClient,
+    lab_by_id: dict[str, LabEntry],
 ) -> str:
     if tool_name == "get_blog_post":
         url = tool_input.get("url", "")
@@ -144,6 +169,10 @@ async def _dispatch_tool(
         return await docs.get_tool_docs(tool_input["tool_name"])
     if tool_name == "get_image_docs":
         return await docs.get_image_docs(tool_input["image_name"])
+    if tool_name == "get_lab":
+        lab_id = tool_input.get("lab_id", "")
+        lab = lab_by_id.get(lab_id)
+        return format_lab_detail(lab) if lab else f"Lab not found: {lab_id}"
     return f"Unknown tool: {tool_name}"
 
 
@@ -168,19 +197,31 @@ async def suggest(
     if force_refresh or is_archive_stale(project_root):
         refresh_blogs(project_root, force=force_refresh)
 
-    # 2. Parse blog index
+    # 2. Refresh labs if needed
+    if force_refresh or is_labs_stale(project_root):
+        refresh_labs(project_root, force=force_refresh)
+
+    # 3. Parse blog index
     archive_path = project_root / "output" / "unchained-archive.md"
     posts = parse_blog_index(archive_path)
     blog_index_text = _build_blog_index_text(posts)
     post_by_url = {p.url: p for p in posts}
 
-    # 3. Run multi-turn tool use with a single DocsClient session
+    # 4. Parse labs catalog
+    labs = load_labs(project_root / "output" / "labs-catalog.json")
+    lab_by_id = {lab.id: lab for lab in labs}
+    labs_index_text = build_labs_index_text(labs)
+
+    # 5. Run multi-turn tool use with a single DocsClient session
     client = anthropic.AsyncAnthropic()
     system_prompt = _build_system_prompt(output_format)
+    user_content = f"SE notes about prospect:\n\n{se_notes}\n\n{blog_index_text}"
+    if labs_index_text:
+        user_content += f"\n\n{labs_index_text}"
     messages: list[dict[str, Any]] = [
         {
             "role": "user",
-            "content": f"SE notes about prospect:\n\n{se_notes}\n\n{blog_index_text}",
+            "content": user_content,
         }
     ]
 
@@ -203,7 +244,7 @@ async def suggest(
             for block in response.content:
                 if block.type != "tool_use":
                     continue
-                result_text = await _dispatch_tool(block.name, block.input, post_by_url, docs)
+                result_text = await _dispatch_tool(block.name, block.input, post_by_url, docs, lab_by_id)
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": block.id,
