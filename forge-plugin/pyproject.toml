@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "FORGE plugin: recommend Chainguard blogs and docs from SE prospect notes"
 requires-python = ">=3.12"
 dependencies = [
-    "doc-suggester>=0.1.0",
+    "doc-suggester @ git+https://github.com/mbarretta/doc-suggester.git",
     "forge-core>=0.1.0",
 ]
 
@@ -14,6 +14,9 @@ doc-suggester = "forge_doc_suggester.plugin:create_plugin"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/forge_doc_suggester"]
