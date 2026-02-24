@@ -92,6 +92,7 @@ def suggest_env(tmp_path: Path, mock_docs_client):
         patch("doc_suggester.suggester.load_labs", return_value=[]),
         patch("doc_suggester.suggester.DocsClient", return_value=mock_docs_client),
         patch("doc_suggester.suggester.anthropic.AsyncAnthropic") as mock_anthropic,
+        patch("doc_suggester.suggester.generate_synopses", new=AsyncMock(return_value={})),
     ):
         mock_client = AsyncMock()
         mock_anthropic.return_value = mock_client
@@ -123,11 +124,41 @@ def test_build_blog_index_text_includes_posts():
             full_content="Full SLSA content",
         ),
     ]
-    text = _build_blog_index_text(posts)
+    synopses = {"zero-cve-java": "Java; CVEs; container images; zero vulnerabilities"}
+    text = _build_blog_index_text(posts, synopses)
     assert "Zero CVEs in Java" in text
     assert "https://chainguard.dev/unchained/zero-cve-java" in text
     assert "March 15, 2024" in text
     assert "SLSA Compliance" in text
+    assert "zero vulnerabilities" in text
+
+
+def test_build_blog_index_text_uses_synopsis():
+    """Synopsis dict entry is used in place of raw excerpt."""
+    post = BlogPost(
+        title="Java CVEs",
+        url="https://chainguard.dev/unchained/java-cves",
+        date="March 1, 2024",
+        excerpt="Raw excerpt text that should not appear.",
+        full_content="Full content",
+    )
+    synopses = {"java-cves": "Java; CVEs; container security; zero vulnerabilities"}
+    text = _build_blog_index_text([post], synopses)
+    assert "zero vulnerabilities" in text
+    assert "Raw excerpt text that should not appear." not in text
+
+
+def test_build_blog_index_text_fallback_to_excerpt():
+    """Falls back to raw excerpt[:200] when slug absent from synopses."""
+    post = BlogPost(
+        title="Unknown Post",
+        url="https://chainguard.dev/unchained/unknown-post",
+        date="March 1, 2024",
+        excerpt="This excerpt should appear as fallback.",
+        full_content="Full content",
+    )
+    text = _build_blog_index_text([post], synopses={})
+    assert "This excerpt should appear as fallback." in text
 
 
 def test_build_blog_index_text_no_date():
@@ -250,6 +281,7 @@ async def test_suggest_get_lab_tool(tmp_path: Path, mock_docs_client):
         patch("doc_suggester.suggester.load_labs", return_value=[sample_lab]),
         patch("doc_suggester.suggester.DocsClient", return_value=mock_docs_client),
         patch("doc_suggester.suggester.anthropic.AsyncAnthropic") as mock_anthropic,
+        patch("doc_suggester.suggester.generate_synopses", new=AsyncMock(return_value={})),
     ):
         mock_client = AsyncMock()
         mock_anthropic.return_value = mock_client

@@ -8,6 +8,7 @@ from typing import Any
 import anthropic
 
 from doc_suggester.blog_manager import BlogPost, is_archive_stale, parse_blog_index, refresh_blogs
+from doc_suggester.synopsis_generator import _url_to_slug, generate_synopses
 from doc_suggester.docs_client import DocsClient
 from doc_suggester.labs_manager import (
     LabEntry,
@@ -136,13 +137,15 @@ _TOOLS: list[dict[str, Any]] = [
 ]
 
 
-def _build_blog_index_text(posts: list[BlogPost]) -> str:
+def _build_blog_index_text(posts: list[BlogPost], synopses: dict[str, str] = {}) -> str:
     lines = ["## Blog Index\n"]
     for post in posts:
         date_part = f" | {post.date}" if post.date else ""
         lines.append(f"- **{post.title}**{date_part}")
         lines.append(f"  URL: {post.url}")
-        lines.append(f"  Excerpt: {post.excerpt[:200]}")
+        slug = _url_to_slug(post.url)
+        blurb = synopses.get(slug) or post.excerpt[:200]
+        lines.append(f"  Synopsis: {blurb}")
         lines.append("")
     return "\n".join(lines)
 
@@ -204,7 +207,8 @@ async def suggest(
     # 3. Parse blog index
     archive_path = project_root / "output" / "unchained-archive.md"
     posts = parse_blog_index(archive_path)
-    blog_index_text = _build_blog_index_text(posts)
+    synopses = await generate_synopses(project_root, posts)
+    blog_index_text = _build_blog_index_text(posts, synopses)
     post_by_url = {p.url: p for p in posts}
 
     # 4. Parse labs catalog
