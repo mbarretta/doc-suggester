@@ -29,6 +29,7 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
+# Local development overrides — these are only applied when working in the
+# doc-suggester workspace directly (uv ignores them during remote git installs).
 [tool.uv.sources]
 doc-suggester = { path = ".." }
-forge-core = { path = "../../forge/packages/forge-core" }
