@@ -1,13 +1,14 @@
 # doc-suggester
 
-Given SE notes about a prospect, recommends relevant Chainguard blog posts and documentation pages using Claude.
+Given SE notes about a prospect, recommends relevant Chainguard blog posts, documentation pages, and Learning Labs using Claude.
 
 ## How it works
 
 1. Checks if the blog archive is fresh (< 7 days old); runs the Go scraper if not
-2. Parses the archive into a lightweight index of ~500 posts
-3. Starts the Chainguard docs MCP server via Docker
-4. Calls Claude (`claude-sonnet-4-6`) with the blog index and doc tools — Claude fetches full content on demand and returns a ranked markdown list
+2. Parses the archive into a lightweight index of ~500 posts (with LLM-generated synopses for faster, more precise filtering)
+3. Loads the Learning Labs catalog — hands-on video sessions with metadata, difficulty levels, and intent signals
+4. Starts the Chainguard docs MCP server via Docker
+5. Calls Claude (`claude-sonnet-4-6`) with the blog index, labs index, and doc tools — Claude fetches full content on demand and returns a ranked markdown list
 
 ## Prerequisites
 
