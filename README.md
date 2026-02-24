@@ -23,7 +23,7 @@ Given SE notes about a prospect, recommends relevant Chainguard blog posts and d
 Compiles the Go scraper and installs `doc-suggester` as a global command — no virtualenv activation or `uv run` prefix needed.
 
 ```bash
-git clone https://github.com/chainguard-dev/doc-suggester
+git clone https://github.com/mbarretta/doc-suggester
 uv tool install ./doc-suggester
 ```
 
@@ -32,7 +32,7 @@ The blog archive is stored in `~/.local/share/doc-suggester/` and refreshed auto
 ### Development
 
 ```bash
-git clone https://github.com/chainguard-dev/doc-suggester
+git clone https://github.com/mbarretta/doc-suggester
 cd doc-suggester
 uv sync
 ```
@@ -89,6 +89,7 @@ Then invoke it via Forge:
 
 ```bash
 forge doc-suggester --notes "prospect worried about Java CVEs"
+forge doc-suggester --notes "prospect worried about Java CVEs" --output-format email
 ```
 
 See `forge-plugin/pyproject.toml` for the `plugins-registry.yaml` entry.
