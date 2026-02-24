@@ -62,12 +62,3 @@ func (c *Config) CatalogCacheDir() string {
 	return c.CacheDir + "/catalog"
 }
 
-// ImprovementsCacheDir returns the per-lab improvements intermediate cache directory.
-func (c *Config) ImprovementsCacheDir() string {
-	return c.CacheDir + "/improvements"
-}
-
-// PersonasCacheDir returns the per-lab personas intermediate cache directory.
-func (c *Config) PersonasCacheDir() string {
-	return c.CacheDir + "/personas"
-}

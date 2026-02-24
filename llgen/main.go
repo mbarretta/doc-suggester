@@ -49,8 +49,6 @@ func main() {
 		cfg.CacheDir,
 		cfg.GitHubCacheDir(),
 		cfg.CatalogCacheDir(),
-		cfg.ImprovementsCacheDir(),
-		cfg.PersonasCacheDir(),
 		cfg.OutputDir,
 	}
 	for _, dir := range cacheDirs {
@@ -120,20 +118,6 @@ func main() {
 		fmt.Println("==> Generating labs-catalog.json...")
 		if err := generate.Catalog(ctx, claudeClient, cfg, labs, corpora); err != nil {
 			log.Fatalf("generate catalog: %v", err)
-		}
-	}
-
-	if runAll || only == "improvements.md" {
-		fmt.Println("==> Generating improvements.md...")
-		if err := generate.Improvements(ctx, claudeClient, cfg, labs, corpora); err != nil {
-			log.Fatalf("generate improvements: %v", err)
-		}
-	}
-
-	if runAll || only == "personas.md" {
-		fmt.Println("==> Generating personas.md...")
-		if err := generate.Personas(ctx, claudeClient, cfg, labs, corpora); err != nil {
-			log.Fatalf("generate personas: %v", err)
 		}
 	}
 
