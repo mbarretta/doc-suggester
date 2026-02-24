@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import sys
@@ -22,6 +23,7 @@ class DocsClient:
     def __init__(self) -> None:
         self._session: ClientSession | None = None
         self._stack: AsyncExitStack | None = None
+        self._cache: dict[str, str] = {}
 
     async def __aenter__(self) -> "DocsClient":
         server_params = StdioServerParameters(
@@ -66,8 +68,11 @@ class DocsClient:
     async def _call_tool(self, name: str, arguments: dict[str, Any] | None = None) -> str:
         if self._session is None:
             raise RuntimeError("DocsClient must be used as an async context manager")
-        result = await self._session.call_tool(name, arguments=arguments or {})
-        return self._extract_text(result)
+        key = name if not arguments else f"{name}:{json.dumps(arguments, sort_keys=True)}"
+        if key not in self._cache:
+            result = await self._session.call_tool(name, arguments=arguments or {})
+            self._cache[key] = self._extract_text(result)
+        return self._cache[key]
 
     async def search(self, query: str, max_results: int = 5) -> str:
         """Search docs (unreliable — prefer get_security_docs/get_tool_docs/get_image_docs)."""

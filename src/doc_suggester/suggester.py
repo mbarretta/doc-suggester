@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import sys
 from pathlib import Path
 from typing import Any
@@ -268,18 +269,18 @@ async def suggest(
             if response.stop_reason != "tool_use":
                 break
 
-            tool_results: list[dict[str, Any]] = []
-            for block in response.content:
-                if block.type != "tool_use":
-                    continue
+            tool_use_blocks = [b for b in response.content if b.type == "tool_use"]
+            for block in tool_use_blocks:
                 _status(_format_tool_status(block.name, block.input))
-                result_text = await _dispatch_tool(block.name, block.input, post_by_url, docs, lab_by_id)
-                tool_results.append({
+
+            async def _dispatch_block(block: Any) -> dict[str, Any]:
+                return {
                     "type": "tool_result",
                     "tool_use_id": block.id,
-                    "content": result_text,
-                })
+                    "content": await _dispatch_tool(block.name, block.input, post_by_url, docs, lab_by_id),
+                }
 
+            tool_results = list(await asyncio.gather(*map(_dispatch_block, tool_use_blocks)))
             messages.append({"role": "user", "content": tool_results})
 
     # Extract final text response
