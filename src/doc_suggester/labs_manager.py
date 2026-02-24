@@ -68,12 +68,14 @@ def refresh_labs(project_root: Path, force: bool = False) -> None:
     ]
     if force:
         args.append("--force")
-    logger.debug("Running llgen in %s: %s %s", project_root / "llgen", cmd, args)
+    # go run . requires cwd to be the Go source dir; the precompiled binary does not
+    cwd = project_root / "llgen" if cmd == ["go", "run", "."] else project_root
+    logger.debug("Running llgen: %s %s (cwd=%s)", cmd, args, cwd)
     sink = sys.stderr if logger.isEnabledFor(logging.DEBUG) else subprocess.DEVNULL
     try:
         subprocess.run(
             cmd + args,
-            cwd=project_root / "llgen",
+            cwd=cwd,
             check=True,
             stdout=sink,
             stderr=sink,
