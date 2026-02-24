@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import sys
 from pathlib import Path
 
 import anthropic
@@ -44,7 +45,7 @@ async def generate_synopses(project_root: Path, posts: list[BlogPost]) -> dict[s
     if not missing:
         return synopses
 
-    logger.info("Generating synopses for %d posts...", len(missing))
+    print(f"Generating synopses for {len(missing)} posts (this may take a minute on first run)...", file=sys.stderr, flush=True)
     client = anthropic.AsyncAnthropic()
     semaphore = asyncio.Semaphore(_CONCURRENCY)
 

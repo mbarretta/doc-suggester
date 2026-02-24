@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -137,6 +138,26 @@ _TOOLS: list[dict[str, Any]] = [
 ]
 
 
+def _status(msg: str) -> None:
+    print(msg, file=sys.stderr, flush=True)
+
+
+def _format_tool_status(tool_name: str, tool_input: dict[str, Any]) -> str:
+    if tool_name == "get_blog_post":
+        return f"  -> reading blog post: {tool_input.get('url', '')}"
+    if tool_name == "get_security_docs":
+        return "  -> reading security docs"
+    if tool_name == "get_tool_docs":
+        return f"  -> reading tool docs: {tool_input.get('tool_name', '')}"
+    if tool_name == "get_image_docs":
+        return f"  -> reading image docs: {tool_input.get('image_name', '')}"
+    if tool_name == "search_docs":
+        return f"  -> searching docs: {tool_input.get('query', '')}"
+    if tool_name == "get_lab":
+        return f"  -> reading lab: {tool_input.get('lab_id', '')}"
+    return f"  -> tool: {tool_name}"
+
+
 def _build_blog_index_text(posts: list[BlogPost], synopses: dict[str, str] = {}) -> str:
     lines = ["## Blog Index\n"]
     for post in posts:
@@ -198,10 +219,12 @@ async def suggest(
     """
     # 1. Refresh blogs if needed
     if force_refresh or is_archive_stale(project_root):
+        _status("Refreshing blog archive...")
         refresh_blogs(project_root, force=force_refresh)
 
     # 2. Refresh labs if needed
     if force_refresh or is_labs_stale(project_root):
+        _status("Refreshing labs catalog...")
         refresh_labs(project_root, force=force_refresh)
 
     # 3. Parse blog index
@@ -231,6 +254,7 @@ async def suggest(
 
     async with DocsClient() as docs:
         for _ in range(_MAX_TURNS):
+            _status("Thinking...")
             response = await client.messages.create(
                 model=_MODEL,
                 max_tokens=4096,
@@ -248,6 +272,7 @@ async def suggest(
             for block in response.content:
                 if block.type != "tool_use":
                     continue
+                _status(_format_tool_status(block.name, block.input))
                 result_text = await _dispatch_tool(block.name, block.input, post_by_url, docs, lab_by_id)
                 tool_results.append({
                     "type": "tool_result",
