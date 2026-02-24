@@ -29,7 +29,7 @@ class DocSuggesterPlugin:
                 required=True,
             ),
             ToolParam(
-                name="output_format",
+                name="format",
                 description="Output format",
                 choices=["md", "email"],
                 default="md",
@@ -64,7 +64,7 @@ class DocSuggesterPlugin:
                     se_notes=args["notes"],
                     project_root=project_root,
                     force_refresh=args.get("refresh", False),
-                    output_format=args.get("output_format", "md"),
+                    output_format=args.get("format", "md"),
                 )
             )
         except Exception as e:
