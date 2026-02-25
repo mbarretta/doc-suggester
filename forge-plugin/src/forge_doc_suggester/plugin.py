@@ -44,6 +44,7 @@ class DocSuggesterPlugin:
                 name="project_root",
                 description=f"Path to the doc-suggester data directory (default: {_DEFAULT_DATA_DIR})",
                 type="path",
+                default=None,
             ),
         ]
 
