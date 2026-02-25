@@ -43,9 +43,9 @@ def test_notes_param_is_required():
     assert params["notes"].required is True
 
 
-def test_output_format_has_choices():
+def test_format_has_choices():
     params = {p.name: p for p in DocSuggesterPlugin().get_params()}
-    assert params["output_format"].choices == ["md", "email"]
+    assert params["format"].choices == ["md", "email"]
 
 
 # ─── run ──────────────────────────────────────────────────────────────────────
@@ -56,12 +56,13 @@ def test_run_cancelled_before_start():
     assert result.status == ResultStatus.CANCELLED
 
 
-def test_run_success():
+def test_run_success(capsys):
     with patch("forge_doc_suggester.plugin.suggest", new_callable=AsyncMock) as mock_suggest:
         mock_suggest.return_value = "## Recommendations"
         result = DocSuggesterPlugin().run({"notes": "Java CVEs"}, _make_ctx())
     assert result.status == ResultStatus.SUCCESS
     assert result.data["output"] == "## Recommendations"
+    assert "## Recommendations" in capsys.readouterr().out
 
 
 def test_run_passes_correct_args(tmp_path: Path):
@@ -70,7 +71,7 @@ def test_run_passes_correct_args(tmp_path: Path):
         DocSuggesterPlugin().run(
             {
                 "notes": "Java CVEs",
-                "output_format": "email",
+                "format": "email",
                 "refresh": True,
                 "project_root": tmp_path,
             },

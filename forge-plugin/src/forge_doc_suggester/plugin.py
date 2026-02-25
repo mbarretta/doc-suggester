@@ -71,6 +71,7 @@ class DocSuggesterPlugin:
             logging.exception("doc-suggester failed")
             return ToolResult(status=ResultStatus.FAILURE, summary=f"Error: {e}")
 
+        print(result)
         ctx.progress(1.0, "Done")
         return ToolResult(
             status=ResultStatus.SUCCESS,
