@@ -70,6 +70,16 @@ doc-suggester --format email "prospect worried about Java CVEs"
 
 Produces a ready-to-send follow-up email — warm opener, resources woven into prose paragraphs with inline URLs, and a closing offer to follow up. The default (`--format md`) returns a ranked markdown list with titles, URLs, dates, and relevance explanations.
 
+### Initialize data on first use
+
+Run `init` before your first real query to pre-fetch all data sources up front. This avoids a long pause on first use:
+
+```bash
+doc-suggester init
+```
+
+This fetches the blog archive, generates LLM synopses for all posts (~500), and refreshes the Learning Labs catalog. Subsequent runs reuse the cached data and only refresh when it goes stale (blogs: 7 days, labs: 30 days).
+
 ### Force a blog archive refresh
 
 ```bash
