@@ -1,4 +1,4 @@
-"""Forge plugin wrapper for doc-suggester."""
+"""Forge plugin wrapper for doc-suggester-cgr."""
 
 from __future__ import annotations
 
@@ -10,13 +10,13 @@ from typing import Any
 from forge_core.context import ExecutionContext
 from forge_core.plugin import ResultStatus, ToolParam, ToolPlugin, ToolResult
 
-from doc_suggester.suggester import suggest
+from doc_suggester_cgr.suggester import suggest
 
-_DEFAULT_DATA_DIR = str(Path.home() / ".local" / "share" / "doc-suggester")
+_DEFAULT_DATA_DIR = str(Path.home() / ".local" / "share" / "doc-suggester-cgr")
 
 
-class DocSuggesterPlugin:
-    name = "doc-suggester"
+class DocSuggesterCgrPlugin:
+    name = "doc-suggester-cgr"
     description = "Recommend relevant Chainguard blogs and docs for a prospect"
     version = "0.1.0"
     requires_auth = False  # uses ANTHROPIC_API_KEY, not chainctl
@@ -42,14 +42,14 @@ class DocSuggesterPlugin:
             ),
             ToolParam(
                 name="project_root",
-                description=f"Path to the doc-suggester data directory (default: {_DEFAULT_DATA_DIR})",
+                description=f"Path to the doc-suggester-cgr data directory (default: {_DEFAULT_DATA_DIR})",
                 type="path",
                 default=None,
             ),
         ]
 
     def run(self, args: dict[str, Any], ctx: ExecutionContext) -> ToolResult:
-        ctx.progress(0.0, "Starting doc-suggester...")
+        ctx.progress(0.0, "Starting doc-suggester-cgr...")
 
         if ctx.is_cancelled:
             return ToolResult(status=ResultStatus.CANCELLED, summary="Cancelled by user")
@@ -69,7 +69,7 @@ class DocSuggesterPlugin:
                 )
             )
         except Exception as e:
-            logging.exception("doc-suggester failed")
+            logging.exception("doc-suggester-cgr failed")
             return ToolResult(status=ResultStatus.FAILURE, summary=f"Error: {e}")
 
         print(result)
@@ -82,4 +82,4 @@ class DocSuggesterPlugin:
 
 
 def create_plugin() -> ToolPlugin:
-    return DocSuggesterPlugin()
+    return DocSuggesterCgrPlugin()

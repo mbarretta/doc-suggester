@@ -1,4 +1,4 @@
-"""Tests for the forge-doc-suggester plugin."""
+"""Tests for the forge-doc-suggester-cgr plugin."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, patch
 
 from forge_core.context import ExecutionContext
 from forge_core.plugin import ResultStatus, ToolPlugin
-from forge_doc_suggester.plugin import DocSuggesterPlugin, _DEFAULT_DATA_DIR, create_plugin
+from forge_doc_suggester_cgr.plugin import DocSuggesterCgrPlugin, _DEFAULT_DATA_DIR, create_plugin
 
 
 def _make_ctx(cancelled: bool = False) -> ExecutionContext:
@@ -32,19 +32,19 @@ def test_protocol_compliance():
 
 
 def test_requires_auth_is_false():
-    assert DocSuggesterPlugin.requires_auth is False
+    assert DocSuggesterCgrPlugin.requires_auth is False
 
 
 # ─── get_params ───────────────────────────────────────────────────────────────
 
 
 def test_notes_param_is_required():
-    params = {p.name: p for p in DocSuggesterPlugin().get_params()}
+    params = {p.name: p for p in DocSuggesterCgrPlugin().get_params()}
     assert params["notes"].required is True
 
 
 def test_format_has_choices():
-    params = {p.name: p for p in DocSuggesterPlugin().get_params()}
+    params = {p.name: p for p in DocSuggesterCgrPlugin().get_params()}
     assert params["format"].choices == ["md", "email"]
 
 
@@ -52,23 +52,23 @@ def test_format_has_choices():
 
 
 def test_run_cancelled_before_start():
-    result = DocSuggesterPlugin().run({"notes": "test"}, _make_ctx(cancelled=True))
+    result = DocSuggesterCgrPlugin().run({"notes": "test"}, _make_ctx(cancelled=True))
     assert result.status == ResultStatus.CANCELLED
 
 
 def test_run_success(capsys):
-    with patch("forge_doc_suggester.plugin.suggest", new_callable=AsyncMock) as mock_suggest:
+    with patch("forge_doc_suggester_cgr.plugin.suggest", new_callable=AsyncMock) as mock_suggest:
         mock_suggest.return_value = "## Recommendations"
-        result = DocSuggesterPlugin().run({"notes": "Java CVEs"}, _make_ctx())
+        result = DocSuggesterCgrPlugin().run({"notes": "Java CVEs"}, _make_ctx())
     assert result.status == ResultStatus.SUCCESS
     assert result.data["output"] == "## Recommendations"
     assert "## Recommendations" in capsys.readouterr().out
 
 
 def test_run_passes_correct_args(tmp_path: Path):
-    with patch("forge_doc_suggester.plugin.suggest", new_callable=AsyncMock) as mock_suggest:
+    with patch("forge_doc_suggester_cgr.plugin.suggest", new_callable=AsyncMock) as mock_suggest:
         mock_suggest.return_value = "output"
-        DocSuggesterPlugin().run(
+        DocSuggesterCgrPlugin().run(
             {
                 "notes": "Java CVEs",
                 "format": "email",
@@ -86,15 +86,15 @@ def test_run_passes_correct_args(tmp_path: Path):
 
 
 def test_run_project_root_default():
-    with patch("forge_doc_suggester.plugin.suggest", new_callable=AsyncMock) as mock_suggest:
+    with patch("forge_doc_suggester_cgr.plugin.suggest", new_callable=AsyncMock) as mock_suggest:
         mock_suggest.return_value = "output"
-        DocSuggesterPlugin().run({"notes": "test"}, _make_ctx())
+        DocSuggesterCgrPlugin().run({"notes": "test"}, _make_ctx())
     assert mock_suggest.call_args.kwargs["project_root"] == Path(_DEFAULT_DATA_DIR)
 
 
 def test_run_failure_on_exception():
-    with patch("forge_doc_suggester.plugin.suggest", new_callable=AsyncMock) as mock_suggest:
+    with patch("forge_doc_suggester_cgr.plugin.suggest", new_callable=AsyncMock) as mock_suggest:
         mock_suggest.side_effect = RuntimeError("API down")
-        result = DocSuggesterPlugin().run({"notes": "test"}, _make_ctx())
+        result = DocSuggesterCgrPlugin().run({"notes": "test"}, _make_ctx())
     assert result.status == ResultStatus.FAILURE
     assert "API down" in result.summary

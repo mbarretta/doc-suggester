@@ -9,10 +9,10 @@ from typing import Any
 
 import anthropic
 
-from doc_suggester.blog_manager import BlogPost, is_archive_stale, parse_blog_index, refresh_blogs
-from doc_suggester.synopsis_generator import _url_to_slug, generate_synopses
-from doc_suggester.docs_client import DocsClient
-from doc_suggester.labs_manager import (
+from doc_suggester_cgr.blog_manager import BlogPost, is_archive_stale, parse_blog_index, refresh_blogs
+from doc_suggester_cgr.synopsis_generator import _url_to_slug, generate_synopses
+from doc_suggester_cgr.docs_client import DocsClient
+from doc_suggester_cgr.labs_manager import (
     LabEntry,
     build_labs_index_text,
     format_lab_detail,
@@ -211,7 +211,7 @@ async def suggest(
 
     Args:
         se_notes: Free-form text describing the prospect's interests/concerns.
-        project_root: Path to the doc-suggester repo root (contains main.go).
+        project_root: Path to the doc-suggester-cgr repo root (contains main.go).
         force_refresh: If True, run the Go scraper regardless of archive age.
         output_format: "md" for ranked markdown (default), "email" for a follow-up email draft.
 

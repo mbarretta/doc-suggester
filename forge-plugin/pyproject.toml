@@ -1,15 +1,15 @@
 [project]
-name = "forge-doc-suggester"
+name = "forge-doc-suggester-cgr"
 version = "0.1.0"
 description = "FORGE plugin: recommend Chainguard blogs and docs from SE prospect notes"
 requires-python = ">=3.12"
 dependencies = [
-    "doc-suggester @ git+https://github.com/mbarretta/doc-suggester.git",
+    "doc-suggester-cgr @ git+https://github.com/mbarretta/doc-suggester-cgr.git",
     "forge-core>=0.1.0",
 ]
 
 [project.entry-points."forge.plugins"]
-doc-suggester = "forge_doc_suggester.plugin:create_plugin"
+doc-suggester-cgr = "forge_doc_suggester_cgr.plugin:create_plugin"
 
 [build-system]
 requires = ["hatchling"]
@@ -19,7 +19,7 @@ build-backend = "hatchling.build"
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/forge_doc_suggester"]
+packages = ["src/forge_doc_suggester_cgr"]
 
 [dependency-groups]
 dev = [
@@ -30,6 +30,6 @@ dev = [
 testpaths = ["tests"]
 
 # Local development overrides — these are only applied when working in the
-# doc-suggester workspace directly (uv ignores them during remote git installs).
+# doc-suggester-cgr workspace directly (uv ignores them during remote git installs).
 [tool.uv.sources]
-doc-suggester = { path = ".." }
+doc-suggester-cgr = { path = ".." }

@@ -1,4 +1,4 @@
-"""CLI entry point for doc-suggester."""
+"""CLI entry point for doc-suggester-cgr."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
         "--project-root",
         metavar="DIR",
         default=None,
-        help="Path to the doc-suggester data directory (default: ~/.local/share/doc-suggester).",
+        help="Path to the doc-suggester-cgr data directory (default: ~/.local/share/doc-suggester-cgr).",
     )
     parser.add_argument(
         "-v", "--verbose",
@@ -36,7 +36,7 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        prog="doc-suggester",
+        prog="doc-suggester-cgr",
         description="Recommend relevant Chainguard blogs and docs given SE notes about a prospect.",
     )
     parser.add_argument(
@@ -67,9 +67,9 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 async def _run_init(project_root: Path) -> None:
     """Pre-fetch and process all data sources for first-run readiness."""
-    from doc_suggester.blog_manager import parse_blog_index, refresh_blogs
-    from doc_suggester.labs_manager import refresh_labs
-    from doc_suggester.synopsis_generator import generate_synopses
+    from doc_suggester_cgr.blog_manager import parse_blog_index, refresh_blogs
+    from doc_suggester_cgr.labs_manager import refresh_labs
+    from doc_suggester_cgr.synopsis_generator import generate_synopses
 
     _status("Refreshing blog archive and Learning Labs catalog...")
     await asyncio.gather(
@@ -85,7 +85,7 @@ async def _run_init(project_root: Path) -> None:
     else:
         _status("Warning: no blog posts found after refresh — skipping synopsis generation.")
 
-    _status("Init complete. Run 'doc-suggester' normally to get recommendations.")
+    _status("Init complete. Run 'doc-suggester-cgr' normally to get recommendations.")
 
 
 def _resolve_project_root(explicit: str | None) -> Path:
@@ -99,7 +99,7 @@ def _resolve_project_root(explicit: str | None) -> Path:
             return candidate
         candidate = candidate.parent
     # 3. Standalone (uv tool install): use a per-user data directory
-    data_dir = Path.home() / ".local" / "share" / "doc-suggester"
+    data_dir = Path.home() / ".local" / "share" / "doc-suggester-cgr"
     data_dir.mkdir(parents=True, exist_ok=True)
     return data_dir
 
@@ -109,7 +109,7 @@ def main(argv: list[str] | None = None) -> None:
     # positional notes arguments.
     raw = argv if argv is not None else sys.argv[1:]
     if raw and raw[0] == "init":
-        init_parser = argparse.ArgumentParser(prog="doc-suggester init", add_help=True)
+        init_parser = argparse.ArgumentParser(prog="doc-suggester-cgr init", add_help=True)
         _add_common_args(init_parser)
         init_args = init_parser.parse_args(raw[1:])
         _setup_logging(init_args.verbose)
@@ -137,7 +137,7 @@ def main(argv: list[str] | None = None) -> None:
 
     project_root = _resolve_project_root(args.project_root)
 
-    from doc_suggester.suggester import suggest
+    from doc_suggester_cgr.suggester import suggest
 
     result = asyncio.run(suggest(
         se_notes=notes,

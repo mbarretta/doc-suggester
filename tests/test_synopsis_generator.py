@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from doc_suggester.blog_manager import BlogPost
-from doc_suggester.synopsis_generator import generate_synopses, load_synopses
+from doc_suggester_cgr.blog_manager import BlogPost
+from doc_suggester_cgr.synopsis_generator import generate_synopses, load_synopses
 
 
 def _make_post(slug: str, title: str = "Test Post") -> BlogPost:
@@ -57,7 +57,7 @@ async def test_generate_synopses_no_new_posts(tmp_path: Path):
     (tmp_path / "output" / "blog-synopses.json").write_text(json.dumps(existing))
     posts = [_make_post("java-cves")]
 
-    with patch("doc_suggester.synopsis_generator.anthropic.AsyncAnthropic") as mock_cls:
+    with patch("doc_suggester_cgr.synopsis_generator.anthropic.AsyncAnthropic") as mock_cls:
         result = await generate_synopses(tmp_path, posts)
 
     mock_cls.assert_not_called()
@@ -77,7 +77,7 @@ async def test_generate_synopses_generates_missing(tmp_path: Path):
     mock_client = AsyncMock()
     mock_client.messages.create = AsyncMock(return_value=_make_api_response(new_synopsis))
 
-    with patch("doc_suggester.synopsis_generator.anthropic.AsyncAnthropic", return_value=mock_client):
+    with patch("doc_suggester_cgr.synopsis_generator.anthropic.AsyncAnthropic", return_value=mock_client):
         result = await generate_synopses(tmp_path, posts)
 
     assert result["java-cves"] == existing["java-cves"]
@@ -110,7 +110,7 @@ async def test_generate_synopses_handles_api_failure(tmp_path: Path, caplog):
     mock_client.messages.create = AsyncMock(side_effect=_side_effect)
 
     with (
-        patch("doc_suggester.synopsis_generator.anthropic.AsyncAnthropic", return_value=mock_client),
+        patch("doc_suggester_cgr.synopsis_generator.anthropic.AsyncAnthropic", return_value=mock_client),
         caplog.at_level("WARNING"),
     ):
         result = await generate_synopses(tmp_path, posts)

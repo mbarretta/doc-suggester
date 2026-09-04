@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from doc_suggester.labs_manager import (
+from doc_suggester_cgr.labs_manager import (
     LabEntry,
     build_labs_index_text,
     is_labs_stale,

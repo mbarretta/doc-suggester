@@ -10,7 +10,7 @@ from pathlib import Path
 
 import anthropic
 
-from doc_suggester.blog_manager import BlogPost
+from doc_suggester_cgr.blog_manager import BlogPost
 
 logger = logging.getLogger(__name__)
 

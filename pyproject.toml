@@ -1,5 +1,5 @@
 [project]
-name = "doc-suggester"
+name = "doc-suggester-cgr"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
@@ -8,7 +8,7 @@ dependencies = [
 ]
 
 [project.scripts]
-doc-suggester = "doc_suggester.cli:main"
+doc-suggester-cgr = "doc_suggester_cgr.cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -18,8 +18,8 @@ build-backend = "hatchling.build"
 path = "hatch_build.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/doc_suggester"]
-artifacts = ["src/doc_suggester/bin/*"]
+packages = ["src/doc_suggester_cgr"]
+artifacts = ["src/doc_suggester_cgr/bin/*"]
 
 [dependency-groups]
 dev = [

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from doc_suggester.blog_manager import (
+from doc_suggester_cgr.blog_manager import (
     BlogPost,
     _parse_date,
     get_most_recent_blog_date,

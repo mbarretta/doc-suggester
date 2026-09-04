@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.12"
 
 [[package]]
@@ -83,7 +83,7 @@ wheels = [
 ]
 
 [[package]]
-name = "doc-suggester"
+name = "doc-suggester-cgr"
 version = "0.1.0"
 source = { directory = "../" }
 dependencies = [
@@ -126,11 +126,11 @@ wheels = [
 ]
 
 [[package]]
-name = "forge-doc-suggester"
+name = "forge-doc-suggester-cgr"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "doc-suggester" },
+    { name = "doc-suggester-cgr" },
     { name = "forge-core" },
 ]
 
@@ -141,7 +141,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "doc-suggester", directory = "../" },
+    { name = "doc-suggester-cgr", directory = "../" },
     { name = "forge-core", specifier = ">=0.1.0" },
 ]
 

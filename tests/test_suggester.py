@@ -8,9 +8,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from doc_suggester.blog_manager import BlogPost
-from doc_suggester.labs_manager import LabEntry
-from doc_suggester.suggester import _build_blog_index_text, suggest
+from doc_suggester_cgr.blog_manager import BlogPost
+from doc_suggester_cgr.labs_manager import LabEntry
+from doc_suggester_cgr.suggester import _build_blog_index_text, suggest
 
 
 # ─── helpers ─────────────────────────────────────────────────────────────────
@@ -85,14 +85,14 @@ def suggest_env(tmp_path: Path, mock_docs_client):
     """Archive + patched dependencies. Yields (project_root, mock_client, mock_refresh)."""
     _make_archive(tmp_path)
     with (
-        patch("doc_suggester.suggester.is_archive_stale", return_value=False),
-        patch("doc_suggester.suggester.refresh_blogs") as mock_refresh,
-        patch("doc_suggester.suggester.is_labs_stale", return_value=False),
-        patch("doc_suggester.suggester.refresh_labs"),
-        patch("doc_suggester.suggester.load_labs", return_value=[]),
-        patch("doc_suggester.suggester.DocsClient", return_value=mock_docs_client),
-        patch("doc_suggester.suggester.anthropic.AsyncAnthropic") as mock_anthropic,
-        patch("doc_suggester.suggester.generate_synopses", new=AsyncMock(return_value={})),
+        patch("doc_suggester_cgr.suggester.is_archive_stale", return_value=False),
+        patch("doc_suggester_cgr.suggester.refresh_blogs") as mock_refresh,
+        patch("doc_suggester_cgr.suggester.is_labs_stale", return_value=False),
+        patch("doc_suggester_cgr.suggester.refresh_labs"),
+        patch("doc_suggester_cgr.suggester.load_labs", return_value=[]),
+        patch("doc_suggester_cgr.suggester.DocsClient", return_value=mock_docs_client),
+        patch("doc_suggester_cgr.suggester.anthropic.AsyncAnthropic") as mock_anthropic,
+        patch("doc_suggester_cgr.suggester.generate_synopses", new=AsyncMock(return_value={})),
     ):
         mock_client = AsyncMock()
         mock_anthropic.return_value = mock_client
@@ -210,7 +210,7 @@ async def test_suggest_triggers_refresh_when_stale(suggest_env):
     """When archive is stale, refresh_blogs is called."""
     tmp_path, mock_client, mock_refresh = suggest_env
     mock_client.messages.create = AsyncMock(return_value=_make_end_response("Recommendations"))
-    with patch("doc_suggester.suggester.is_archive_stale", return_value=True):
+    with patch("doc_suggester_cgr.suggester.is_archive_stale", return_value=True):
         await suggest("some notes", tmp_path)
     mock_refresh.assert_called_once_with(tmp_path, force=False)
 
@@ -274,14 +274,14 @@ async def test_suggest_get_lab_tool(tmp_path: Path, mock_docs_client):
     _make_archive(tmp_path)
     tool_use_block = _make_tool_use_block("tu_lab", "get_lab", {"lab_id": "ll202509"})
     with (
-        patch("doc_suggester.suggester.is_archive_stale", return_value=False),
-        patch("doc_suggester.suggester.refresh_blogs"),
-        patch("doc_suggester.suggester.is_labs_stale", return_value=False),
-        patch("doc_suggester.suggester.refresh_labs"),
-        patch("doc_suggester.suggester.load_labs", return_value=[sample_lab]),
-        patch("doc_suggester.suggester.DocsClient", return_value=mock_docs_client),
-        patch("doc_suggester.suggester.anthropic.AsyncAnthropic") as mock_anthropic,
-        patch("doc_suggester.suggester.generate_synopses", new=AsyncMock(return_value={})),
+        patch("doc_suggester_cgr.suggester.is_archive_stale", return_value=False),
+        patch("doc_suggester_cgr.suggester.refresh_blogs"),
+        patch("doc_suggester_cgr.suggester.is_labs_stale", return_value=False),
+        patch("doc_suggester_cgr.suggester.refresh_labs"),
+        patch("doc_suggester_cgr.suggester.load_labs", return_value=[sample_lab]),
+        patch("doc_suggester_cgr.suggester.DocsClient", return_value=mock_docs_client),
+        patch("doc_suggester_cgr.suggester.anthropic.AsyncAnthropic") as mock_anthropic,
+        patch("doc_suggester_cgr.suggester.generate_synopses", new=AsyncMock(return_value={})),
     ):
         mock_client = AsyncMock()
         mock_anthropic.return_value = mock_client

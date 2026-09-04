@@ -14,7 +14,7 @@ class CustomBuildHook(BuildHookInterface):
 
     def initialize(self, version: str, build_data: dict) -> None:
         root = Path(self.root)
-        bin_dir = root / "src" / "doc_suggester" / "bin"
+        bin_dir = root / "src" / "doc_suggester_cgr" / "bin"
         bin_dir.mkdir(parents=True, exist_ok=True)
 
         binary_name = "scraper.exe" if sys.platform == "win32" else "scraper"
@@ -28,7 +28,7 @@ class CustomBuildHook(BuildHookInterface):
         )
 
         # Mark as an artifact so hatchling includes it even though it's gitignored
-        build_data["artifacts"].append(f"src/doc_suggester/bin/{binary_name}")
+        build_data["artifacts"].append(f"src/doc_suggester_cgr/bin/{binary_name}")
 
         # Build llgen binary
         llgen_name = "llgen.exe" if sys.platform == "win32" else "llgen"
@@ -39,4 +39,4 @@ class CustomBuildHook(BuildHookInterface):
             cwd=root / "llgen",
             check=True,
         )
-        build_data["artifacts"].append(f"src/doc_suggester/bin/{llgen_name}")
+        build_data["artifacts"].append(f"src/doc_suggester_cgr/bin/{llgen_name}")
